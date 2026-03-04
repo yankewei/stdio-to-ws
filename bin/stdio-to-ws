@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Yankewei\StdioToWs\Config\ServerConfig;
+use Yankewei\StdioToWs\Server\WebSocketServer;
+
+// 解析配置
+$config = ServerConfig::fromArgv($argv);
+
+// 创建并启动服务器
+$server = new WebSocketServer($config);
+$server->run();

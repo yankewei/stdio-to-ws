@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>stdio-to-ws 测试客户端</title>
+    <style>
+        body { font-family: monospace; max-width: 800px; margin: 20px auto; padding: 20px; }
+        #output { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; background: #f5f5f5; }
+        .stdout { color: #333; }
+        .stderr { color: #c00; }
+        .system { color: #666; font-style: italic; }
+        #input { width: 100%; padding: 10px; margin-top: 10px; box-sizing: border-box; }
+        button { padding: 10px 20px; margin-top: 10px; }
+        .settings { margin: 10px 0; padding: 10px; background: #eee; }
+    </style>
+</head>
+<body>
+    <h1>stdio-to-ws 测试客户端</h1>
+    
+    <div class="settings">
+        <label>
+            <input type="checkbox" id="rawMode"> 原始模式 (RAW) - 不使用 Base64 编码
+        </label>
+    </div>
+    
+    <div>
+        <button onclick="connect()">连接</button>
+        <button onclick="disconnect()">断开</button>
+        <span id="status">未连接</span>
+    </div>
+    <div id="output"></div>
+    <input type="text" id="input" placeholder="输入消息，按 Enter 发送" disabled onkeypress="handleKey(event)">
+    <button onclick="send()" id="sendBtn" disabled>发送</button>
+
+    <script>
+        let ws = null;
+        let isRawMode = false;
+
+        // 模式切换监听
+        document.getElementById('rawMode').addEventListener('change', function(e) {
+            isRawMode = e.target.checked;
+            log('切换到' + (isRawMode ? '原始模式' : 'Base64 模式'), 'system');
+        });
+
+        function log(msg, type = 'system') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('output').appendChild(div);
+            document.getElementById('output').scrollTop = document.getElementById('output').scrollHeight;
+        }
+
+        // 将字符串转换为 Base64（支持中文等非 ASCII 字符）
+        function utf8ToBase64(str) {
+            const bytes = new TextEncoder().encode(str);
+            const binString = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
+            return btoa(binString);
+        }
+
+        // 将 Base64 转换为字符串（支持中文等非 ASCII 字符）
+        function base64ToUtf8(str) {
+            const binString = atob(str);
+            const bytes = Uint8Array.from(binString, (c) => c.charCodeAt(0));
+            return new TextDecoder().decode(bytes);
+        }
+
+        function connect() {
+            if (ws) return;
+            
+            ws = new WebSocket('ws://localhost:3000');
+            
+            ws.onopen = () => {
+                document.getElementById('status').textContent = '已连接 (' + (isRawMode ? 'RAW' : 'Base64') + ')';
+                document.getElementById('input').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                log('Connected to server');
+            };
+            
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                switch(msg.type) {
+                    case 'stdout':
+                        const stdoutData = isRawMode ? msg.data : base64ToUtf8(msg.data);
+                        log('STDOUT: ' + stdoutData, 'stdout');
+                        break;
+                    case 'stderr':
+                        const stderrData = isRawMode ? msg.data : base64ToUtf8(msg.data);
+                        log('STDERR: ' + stderrData, 'stderr');
+                        break;
+                    case 'process_exit':
+                        log('Process exited with code: ' + msg.code, 'system');
+                        break;
+                    case 'pong':
+                        log('Pong received');
+                        break;
+                }
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('status').textContent = '已断开';
+                document.getElementById('input').disabled = true;
+                document.getElementById('sendBtn').disabled = true;
+                log('Disconnected from server');
+                ws = null;
+            };
+            
+            ws.onerror = (err) => {
+                log('Error: ' + err.message, 'stderr');
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function send() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            const input = document.getElementById('input');
+            const text = input.value;
+            if (!text) return;
+            
+            // 根据模式选择编码方式
+            const data = isRawMode ? (text + '\n') : utf8ToBase64(text + '\n');
+            ws.send(JSON.stringify({type: 'stdin', data: data}));
+            log('Sent: ' + text, 'system');
+            input.value = '';
+        }
+
+        function handleKey(event) {
+            if (event.key === 'Enter') {
+                send();
+            }
+        }
+    </script>
+</body>
+</html>
