@@ -1,70 +1,70 @@
 # stdio-to-ws
 
-[English](README.en.md) | 中文
+English | [中文](README.md)
 
-将命令行程序的 stdio（标准输入输出）包装成 WebSocket 服务，供其他程序调用。
+Wrap a command-line program's stdio (standard input/output) as a WebSocket service for other programs to consume.
 
-适用于运行 [OpenAI Codex](https://developers.openai.com/codex/) app-server 或任何其他基于 JSON-RPC over stdio 的程序。
+Ideal for running the [OpenAI Codex](https://developers.openai.com/codex/) app-server or any other JSON-RPC over stdio programs.
 
-## 特性
+## Features
 
-- **纯透传模式** - WebSocket 消息直接转发到子进程 stdin，子进程 stdout 直接返回给 WebSocket 客户端
-- **每个客户端独立子进程** - WebSocket 客户端连接时，独立启动一个子进程
-- **异步高性能** - 基于 AMPHP 和 PHP 8.4+ Fibers
+- **Pure passthrough mode** - WebSocket messages are directly forwarded to the subprocess stdin, and subprocess stdout is directly returned to the WebSocket client
+- **Independent subprocess per client** - Each WebSocket connection spawns an isolated subprocess
+- **Async high performance** - Built on AMPHP and PHP 8.4+ Fibers
 
-## 安装
+## Installation
 
 ```bash
 composer install
 ```
 
-## 开发
+## Development
 
-### 运行测试
+### Running Tests
 
 ```bash
-# 运行所有测试
+# Run all tests
 composer run test
 
-# 仅运行单元测试
+# Run unit tests only
 composer run test-unit
 
-# 仅运行集成测试
+# Run integration tests only
 composer run test-integration
 
-# 生成覆盖率报告
+# Generate coverage report
 vendor/bin/phpunit --coverage-html coverage-html
 ```
 
-### 运行静态分析 (PHPStan max level)
+### Static Analysis (PHPStan max level)
 
 ```bash
 composer run analyse
-# 或
+# or
 vendor/bin/phpstan analyse --memory-limit=512M
 ```
 
-### 一键检查（测试 + 静态分析）
+### One-command Check (tests + static analysis)
 
 ```bash
 composer run check
 ```
 
-## 使用方法
+## Usage
 
-### 基本用法
+### Basic Usage
 
 ```bash
 php bin/stdio-to-ws "php examples/echo-server.php"
 ```
 
-### 运行 Codex App Server
+### Running Codex App Server
 
 ```bash
 php bin/stdio-to-ws "codex app-server" --port=8080
 ```
 
-### 完整参数
+### Full Parameters
 
 ```bash
 php bin/stdio-to-ws "python3 script.py" \
@@ -76,50 +76,50 @@ php bin/stdio-to-ws "python3 script.py" \
     --debug
 ```
 
-### 参数说明
+### Parameter Reference
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `command` | 要执行的命令（必需） | - |
-| `--host` | 监听地址 | `0.0.0.0` |
-| `--port` | 监听端口 | `8080` |
-| `--cwd` | 工作目录 | 当前目录 |
-| `--env` | 环境变量（可多次使用） | - |
-| `--debug` | 启用调试日志，显示通信内容 | 关闭 |
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `command` | Command to execute (required) | - |
+| `--host` | Listen address | `0.0.0.0` |
+| `--port` | Listen port | `8080` |
+| `--cwd` | Working directory | Current directory |
+| `--env` | Environment variables (can be used multiple times) | - |
+| `--debug` | Enable debug logging | Disabled |
 
-## WebSocket 协议
+## WebSocket Protocol
 
-**纯透传模式**：WebSocket 消息直接转发，不做任何包装。
+**Pure passthrough mode**: WebSocket messages are forwarded directly without any wrapping.
 
-### 数据流向
+### Data Flow
 
 ```
-WebSocket Client ──原样──▶ 子进程 stdin
-子进程 stdout ──原样──▶ WebSocket Client
-子进程 stderr ──▶ 服务器 stderr（带 conn ID 前缀，用于日志收集）
+WebSocket Client ──as-is──▶ Subprocess stdin
+Subprocess stdout ──as-is──▶ WebSocket Client
+Subprocess stderr ──▶ Server stderr (with conn ID prefix for log collection)
 ```
 
-### 示例（Codex JSON-RPC）
+### Example (Codex JSON-RPC)
 
-客户端发送：
+Client sends:
 ```json
 {"method": "initialize", "id": 0}
 ```
 
-服务器返回：
+Server responds:
 ```json
 {"id": 0, "result": {"protocolVersion": "2025-03-25"}}
 ```
 
-**注意**：消息自动以换行符（`\n`）结尾，符合 JSON Lines 格式。
+**Note**: Messages are automatically terminated with a newline (`\n`), conforming to JSON Lines format.
 
-### JavaScript 客户端示例
+### JavaScript Client Example
 
 ```javascript
 const ws = new WebSocket('ws://localhost:8080');
 
 ws.onopen = () => {
-    // 初始化
+    // Initialize
     ws.send(JSON.stringify({
         method: 'initialize',
         id: 0,
@@ -129,11 +129,11 @@ ws.onopen = () => {
 
 ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    console.log('收到:', msg);
+    console.log('Received:', msg);
     
-    // 处理响应
+    // Handle response
     if (msg.id === 0 && msg.result) {
-        // 初始化完成，开始线程
+        // Initialization complete, start thread
         ws.send(JSON.stringify({
             method: 'thread/start',
             id: 1,
@@ -143,19 +143,19 @@ ws.onmessage = (event) => {
 };
 ```
 
-## 示例
+## Examples
 
-### 1. 启动 echo 服务器
+### 1. Start Echo Server
 
 ```bash
 php bin/stdio-to-ws "php examples/echo-server.php" --port=3000
 ```
 
-### 2. 使用浏览器客户端测试
+### 2. Test with Browser Client
 
-打开 `examples/client.html`，在浏览器中连接 `ws://localhost:3000` 进行测试。
+Open `examples/client.html` in your browser and connect to `ws://localhost:3000` to test.
 
-### 3. 简单的 Python 交互程序
+### 3. Simple Python Interactive Program
 
 ```python
 # script.py
@@ -173,7 +173,7 @@ while True:
 php bin/stdio-to-ws "python3 script.py"
 ```
 
-## 架构
+## Architecture
 
 ```
 WebSocket Client A               WebSocket Client B
@@ -188,21 +188,21 @@ WebSocket Client A               WebSocket Client B
 ┌─────────────┐                ┌─────────────┐
 │   Process   │                │   Process   │
 │      A      │                │      B      │
-│ (独立子进程) │                │ (独立子进程) │
+│ (Isolated)  │                │ (Isolated)  │
 └─────────────┘                └─────────────┘
 ```
 
-每个 WebSocket 连接对应一个独立的子进程，完全隔离。
+Each WebSocket connection corresponds to an isolated subprocess.
 
-## 依赖
+## Dependencies
 
 - PHP >= 8.4
-- AMPHP 生态库
+- AMPHP ecosystem
   - `amphp/amp`
   - `amphp/websocket-server`
   - `amphp/process`
   - `amphp/byte-stream`
 
-## 许可证
+## License
 
 MIT

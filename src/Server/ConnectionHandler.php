@@ -10,7 +10,6 @@ use Revolt\EventLoop;
 use Yankewei\StdioToWs\Config\ServerConfig;
 use Yankewei\StdioToWs\Process\ProcessManager;
 use Yankewei\StdioToWs\Process\ProcessWrapper;
-use Yankewei\StdioToWs\Router\MessageRouter;
 
 /**
  * 处理单个 WebSocket 连接
@@ -20,7 +19,6 @@ final class ConnectionHandler
 {
     private string $connectionId;
     private ?ProcessWrapper $process = null;
-    private MessageRouter $messageRouter;
 
     public function __construct(
         private readonly WebsocketClient $client,
@@ -28,7 +26,6 @@ final class ConnectionHandler
         private readonly ProcessManager $processManager,
     ) {
         $this->connectionId = spl_object_hash($this->client);
-        $this->messageRouter = new MessageRouter($config);
     }
 
     /**
@@ -70,30 +67,29 @@ final class ConnectionHandler
 
         $process = $this->process;
 
-        // stdout -> WebSocket 客户端
+        // stdout -> WebSocket 客户端（透传）
         $process->onStdout(function (string $data): void {
-            $this->sendToClient($this->messageRouter->buildStdoutMessage($data));
-            // debug 模式下打印通信记录
+            $this->sendToClient($data);
             if ($this->config->debug) {
                 echo '[→ Client] stdout: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
             }
         });
 
-        // stderr -> WebSocket 客户端
+        // stderr -> 父进程 stderr（带 connection ID 前缀）
         $process->onStderr(function (string $data): void {
-            $this->sendToClient($this->messageRouter->buildStderrMessage($data));
-            if ($this->config->debug) {
-                echo '[→ Client] stderr: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
+            $lines = explode("\n", rtrim($data, "\n"));
+            foreach ($lines as $line) {
+                if ($line !== '') {
+                    fwrite(STDERR, "[conn:{$this->connectionId}] {$line}\n");
+                }
             }
         });
 
-        // 进程退出通知客户端
+        // 进程退出时关闭 WebSocket 连接
         $process->onExit(function (int $code): void {
-            $this->sendToClient($this->messageRouter->buildExitMessage($code));
             if ($this->config->debug) {
-                echo "[→ Client] process_exit: code=$code\n";
+                echo "[conn:{$this->connectionId}] process_exit: code=$code\n";
             }
-            // 关闭 WebSocket 连接
             $this->client->close();
         });
     }
@@ -124,35 +120,19 @@ final class ConnectionHandler
     }
 
     /**
-     * 处理客户端发来的消息
+     * 处理客户端发来的消息（透传模式）
      */
     private function handleClientMessage(string $text): void
     {
-        $message = $this->messageRouter->parseMessage($text);
-
-        if ($message === null) {
-            return;
-        }
-
-        match ($message['type']) {
-            'stdin' => $this->handleStdinMessage($message),
-            'ping' => $this->sendToClient($this->messageRouter->buildPongMessage()),
-            'pong' => null, // 忽略客户端的 pong
-            default => null,
-        };
-    }
-
-    /**
-     * 处理 stdin 消息
-     * @param array<string, mixed> $message
-     */
-    private function handleStdinMessage(array $message): void
-    {
-        $data = $this->messageRouter->extractStdinData($message);
-        if ($data !== null && $this->process !== null) {
+        // 直接透传到子进程 stdin（确保以换行符结尾）
+        if ($this->process !== null) {
+            $data = $text;
+            if (! str_ends_with($data, "\n")) {
+                $data .= "\n";
+            }
             $this->process->write($data);
             if ($this->config->debug) {
-                echo '[← Client] stdin: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
+                echo '[← Client] stdin: ' . str_replace(["\n", "\r"], ['\n', '\r'], $text) . "\n";
             }
         }
     }

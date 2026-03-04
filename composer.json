@@ -1,51 +1,51 @@
 {
-    "name": "yankewei/stdio-to-ws",
-    "description": "把程序的 stdio 包装成 WebSocket 供其它程序调用",
-    "type": "project",
-    "autoload": {
-        "psr-4": {
-            "Yankewei\\StdioToWs\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Yankewei\\StdioToWs\\Tests\\": "tests/"
-        }
-    },
-    "authors": [
-        {
-            "name": "yankewei"
-        }
-    ],
-    "bin": [
-        "bin/stdio-to-ws"
-    ],
-    "scripts": {
-        "analyse": "phpstan analyse --memory-limit=512M",
-        "test": "phpunit",
-        "test-unit": "phpunit --testsuite Unit",
-        "test-integration": "phpunit --testsuite Integration",
-        "format": "php-cs-fixer fix --allow-risky=yes",
-        "format-check": "php-cs-fixer fix --dry-run --diff --allow-risky=yes",
-        "check": [
-            "@format-check",
-            "@analyse",
-            "@test"
-        ]
-    },
-    "require": {
-        "php": ">=8.3",
-        "amphp/amp": "^3.0",
-        "amphp/websocket-server": "^4.0",
-        "amphp/process": "^2.0",
-        "amphp/byte-stream": "^2.0",
-        "amphp/log": "^2.0",
-        "revolt/event-loop": "^1.0",
-        "monolog/monolog": "^3.0"
-    },
-    "require-dev": {
-        "phpstan/phpstan": "^2.0",
-        "phpunit/phpunit": "^11.0",
-        "friendsofphp/php-cs-fixer": "^3.94"
+  "name": "yankewei/stdio-to-ws",
+  "description": "Wrap program stdio as WebSocket for other programs to consume",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "Yankewei\\StdioToWs\\": "src/"
     }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Yankewei\\StdioToWs\\Tests\\": "tests/"
+    }
+  },
+  "authors": [
+    {
+      "name": "yankewei"
+    }
+  ],
+  "bin": [
+    "bin/stdio-to-ws"
+  ],
+  "scripts": {
+    "analyse": "phpstan analyse --memory-limit=512M",
+    "test": "phpunit",
+    "test-unit": "phpunit --testsuite Unit",
+    "test-integration": "phpunit --testsuite Integration",
+    "format": "php-cs-fixer fix --allow-risky=yes",
+    "format-check": "php-cs-fixer fix --dry-run --diff --allow-risky=yes",
+    "check": [
+      "@format-check",
+      "@analyse",
+      "@test"
+    ]
+  },
+  "require": {
+    "php": ">=8.4",
+    "amphp/amp": "^3.0",
+    "amphp/websocket-server": "^4.0",
+    "amphp/process": "^2.0",
+    "amphp/byte-stream": "^2.0",
+    "amphp/log": "^2.0",
+    "revolt/event-loop": "^1.0",
+    "monolog/monolog": "^3.0"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.0",
+    "phpunit/phpunit": "^11.0",
+    "friendsofphp/php-cs-fixer": "^3.94"
+  }
 }

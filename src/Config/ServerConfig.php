@@ -23,7 +23,6 @@ final readonly class ServerConfig
         public ?string $cwd = null,
         public array $env = [],
         public bool $debug = false,
-        public bool $raw = false,  // 直接传输原始文本，不使用 Base64
     ) {
     }
 
@@ -54,7 +53,6 @@ final readonly class ServerConfig
         $cwd = null;
         $env = [];
         $debug = false;
-        $raw = false;
 
         for ($i = 2; $i < count($argv); $i++) {
             $arg = $argv[$i];
@@ -73,12 +71,10 @@ final readonly class ServerConfig
                 }
             } elseif ($arg === '--debug') {
                 $debug = true;
-            } elseif ($arg === '--raw') {
-                $raw = true;
             }
         }
 
-        return new self($command, $host, $port, $cwd, $env, $debug, $raw);
+        return new self($command, $host, $port, $cwd, $env, $debug);
     }
 
     /**
@@ -97,8 +93,7 @@ Options:
   --port=<number>      监听端口（默认：8080）
   --cwd=<path>         工作目录
   --env=<key=value>    环境变量（可多次使用）
-  --debug              启用调试日志（默认只显示错误）
-  --raw                直接传输原始文本，不编码（调试用）
+  --debug              启用调试日志
   --help, -h           显示帮助信息
 
 Examples:

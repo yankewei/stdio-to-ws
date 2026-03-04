@@ -19,7 +19,6 @@ final class ServerConfigTest extends TestCase
         self::assertNull($config->cwd);
         self::assertSame([], $config->env);
         self::assertFalse($config->debug);
-        self::assertFalse($config->raw);
     }
 
     public function testCustomValues(): void
@@ -31,7 +30,6 @@ final class ServerConfigTest extends TestCase
             cwd: '/app',
             env: ['KEY' => 'value'],
             debug: true,
-            raw: true,
         );
 
         self::assertSame('python3 app.py', $config->command);
@@ -40,7 +38,6 @@ final class ServerConfigTest extends TestCase
         self::assertSame('/app', $config->cwd);
         self::assertSame(['KEY' => 'value'], $config->env);
         self::assertTrue($config->debug);
-        self::assertTrue($config->raw);
     }
 
     public function testFromArgvWithDefaults(): void
@@ -63,7 +60,6 @@ final class ServerConfigTest extends TestCase
             '--env=KEY1=value1',
             '--env=KEY2=value2',
             '--debug',
-            '--raw',
         ]);
 
         self::assertSame('python3 app.py', $config->command);
@@ -72,6 +68,5 @@ final class ServerConfigTest extends TestCase
         self::assertSame('/app', $config->cwd);
         self::assertSame(['KEY1' => 'value1', 'KEY2' => 'value2'], $config->env);
         self::assertTrue($config->debug);
-        self::assertTrue($config->raw);
     }
 }
