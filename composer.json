@@ -25,13 +25,16 @@
         "test": "phpunit",
         "test-unit": "phpunit --testsuite Unit",
         "test-integration": "phpunit --testsuite Integration",
+        "format": "php-cs-fixer fix --allow-risky=yes",
+        "format-check": "php-cs-fixer fix --dry-run --diff --allow-risky=yes",
         "check": [
+            "@format-check",
             "@analyse",
             "@test"
         ]
     },
     "require": {
-        "php": ">=8.1",
+        "php": ">=8.3",
         "amphp/amp": "^3.0",
         "amphp/websocket-server": "^4.0",
         "amphp/process": "^2.0",
@@ -42,6 +45,7 @@
     },
     "require-dev": {
         "phpstan/phpstan": "^2.0",
-        "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "^11.0",
+        "friendsofphp/php-cs-fixer": "^3.94"
     }
 }

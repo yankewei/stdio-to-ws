@@ -29,6 +29,7 @@ final class ProcessManager
     ): ProcessWrapper {
         $process = new ProcessWrapper($command, $cwd, $env);
         $this->processes[$connectionId] = $process;
+
         return $process;
     }
 

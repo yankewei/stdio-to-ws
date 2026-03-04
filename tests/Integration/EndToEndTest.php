@@ -23,19 +23,19 @@ final class EndToEndTest extends TestCase
         $input = "hello\n";
         $encoded = base64_encode($input);
         $clientMessage = json_encode(['type' => 'stdin', 'data' => $encoded]);
-        
+
         // Server parses it
         $parsed = $router->parseMessage($clientMessage);
         self::assertNotNull($parsed);
-        
+
         // Server extracts data
         $extracted = $router->extractStdinData($parsed);
         self::assertSame($input, $extracted);
-        
+
         // Server sends response (simulating process output)
         $output = "hello\n";
         $response = $router->buildStdoutMessage($output);
-        
+
         // Client parses response
         $responseParsed = json_decode($response, true);
         self::assertSame('stdout', $responseParsed['type']);
@@ -50,19 +50,19 @@ final class EndToEndTest extends TestCase
         // Simulate client sending message (no encoding)
         $input = "hello\n";
         $clientMessage = json_encode(['type' => 'stdin', 'data' => $input]);
-        
+
         // Server parses it
         $parsed = $router->parseMessage($clientMessage);
         self::assertNotNull($parsed);
-        
+
         // Server extracts data (direct, no decoding)
         $extracted = $router->extractStdinData($parsed);
         self::assertSame($input, $extracted);
-        
+
         // Server sends response
         $output = "hello\n";
         $response = $router->buildStdoutMessage($output);
-        
+
         // Client parses response
         $responseParsed = json_decode($response, true);
         self::assertSame('stdout', $responseParsed['type']);
@@ -93,7 +93,7 @@ final class EndToEndTest extends TestCase
         // Server sends process exit
         $exit = $router->buildExitMessage(0);
         $exitParsed = json_decode($exit, true);
-        
+
         self::assertSame('process_exit', $exitParsed['type']);
         self::assertSame(0, $exitParsed['code']);
 
@@ -111,7 +111,7 @@ final class EndToEndTest extends TestCase
         $error = "Error: something went wrong\n";
         $stderr = $router->buildStderrMessage($error);
         $stderrParsed = json_decode($stderr, true);
-        
+
         self::assertSame('stderr', $stderrParsed['type']);
         self::assertSame(base64_encode($error), $stderrParsed['data']);
     }
@@ -159,12 +159,12 @@ final class EndToEndTest extends TestCase
         // Binary data with null bytes
         $binary = "hello\x00world\xff";
         $encoded = base64_encode($binary);
-        
+
         // Send
         $msg = json_encode(['type' => 'stdin', 'data' => $encoded]);
         $parsed = $router->parseMessage($msg);
         $decoded = $router->extractStdinData($parsed);
-        
+
         self::assertSame($binary, $decoded);
     }
 
@@ -176,12 +176,12 @@ final class EndToEndTest extends TestCase
         // Unicode characters
         $unicode = "Hello 世界 🌍\n";
         $encoded = base64_encode($unicode);
-        
+
         // Send
         $msg = json_encode(['type' => 'stdin', 'data' => $encoded]);
         $parsed = $router->parseMessage($msg);
         $decoded = $router->extractStdinData($parsed);
-        
+
         self::assertSame($unicode, $decoded);
     }
 }

@@ -50,7 +50,7 @@ final class ProcessWrapper
         $this->stdin = $this->process->getStdin();
         $stdout = $this->process->getStdout();
         $stderr = $this->process->getStderr();
-        
+
         $this->stdout = $stdout;
         $this->stderr = $stderr;
 
@@ -95,7 +95,7 @@ final class ProcessWrapper
      */
     public function write(string $data): void
     {
-        if ($this->stdin !== null && !$this->stdin->isClosed()) {
+        if ($this->stdin !== null && ! $this->stdin->isClosed()) {
             $this->stdin->write($data);
         }
     }
@@ -105,7 +105,7 @@ final class ProcessWrapper
      */
     public function closeStdin(): void
     {
-        if ($this->stdin !== null && !$this->stdin->isClosed()) {
+        if ($this->stdin !== null && ! $this->stdin->isClosed()) {
             $this->stdin->close();
         }
     }

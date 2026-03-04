@@ -15,7 +15,7 @@ final class ProcessManagerTest extends TestCase
         $process = $manager->createProcess('conn-1', 'echo test', null, []);
 
         self::assertNotNull($process);
-        
+
         $retrieved = $manager->getProcess('conn-1');
         self::assertSame($process, $retrieved);
     }
@@ -43,7 +43,7 @@ final class ProcessManagerTest extends TestCase
     public function testCount(): void
     {
         $manager = new ProcessManager();
-        
+
         self::assertSame(0, $manager->count());
 
         $manager->createProcess('conn-1', 'echo test', null, []);
@@ -73,7 +73,7 @@ final class ProcessManagerTest extends TestCase
     public function testMultipleConnectionsIsolation(): void
     {
         $manager = new ProcessManager();
-        
+
         $process1 = $manager->createProcess('conn-1', 'echo first', '/tmp', ['ENV' => '1']);
         $process2 = $manager->createProcess('conn-2', 'echo second', '/var', ['ENV' => '2']);
 

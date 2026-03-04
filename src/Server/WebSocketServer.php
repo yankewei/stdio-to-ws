@@ -4,26 +4,22 @@ declare(strict_types=1);
 
 namespace Yankewei\StdioToWs\Server;
 
+use Amp\ByteStream\WritableResourceStream;
 use Amp\Http\Server\DefaultErrorHandler;
 use Amp\Http\Server\Driver\SocketClientFactory;
 use Amp\Http\Server\Request;
-use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Http\Server\Response;
 use Amp\Http\Server\SocketHttpServer as HttpServer;
-use Amp\Http\HttpStatus;
-use Amp\ByteStream\WritableResourceStream;
 use Amp\Log\StreamHandler;
 use Amp\Socket\InternetAddress;
-use Amp\Websocket\Server\AllowOriginAcceptor;
+use Amp\Socket\ResourceServerSocketFactory;
 use Amp\Websocket\Server\Rfc6455Acceptor;
 use Amp\Websocket\Server\Websocket;
-use Amp\Websocket\Server\WebsocketAcceptor;
 use Amp\Websocket\Server\WebsocketClientHandler;
 use Amp\Websocket\WebsocketClient;
-use Monolog\Logger;
-use Psr\Log\NullLogger;
-use Revolt\EventLoop;
 use Monolog\Level;
+use Monolog\Logger;
+use Revolt\EventLoop;
 use Yankewei\StdioToWs\Config\ServerConfig;
 use Yankewei\StdioToWs\Process\ProcessManager;
 
@@ -105,7 +101,7 @@ final class WebSocketServer implements WebsocketClientHandler
         try {
             $handler->handle();
         } catch (\Throwable $e) {
-            echo "Connection error: " . $e->getMessage() . "\n";
+            echo 'Connection error: ' . $e->getMessage() . "\n";
         }
     }
 

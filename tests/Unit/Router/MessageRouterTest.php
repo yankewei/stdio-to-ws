@@ -13,6 +13,7 @@ final class MessageRouterTest extends TestCase
     private function createRouter(bool $raw = false): MessageRouter
     {
         $config = new ServerConfig('cmd', raw: $raw);
+
         return new MessageRouter($config);
     }
 
@@ -157,7 +158,7 @@ final class MessageRouterTest extends TestCase
 
         self::assertNotNull($result);
         self::assertSame($encoded, $result['data']);
-        
+
         // Verify decoding works
         $decoded = $router->extractStdinData($result);
         self::assertSame($chinese, $decoded);

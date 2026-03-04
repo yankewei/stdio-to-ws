@@ -67,15 +67,15 @@ final class ConnectionHandler
         if ($this->process === null) {
             return;
         }
-        
+
         $process = $this->process;
-        
+
         // stdout -> WebSocket 客户端
         $process->onStdout(function (string $data): void {
             $this->sendToClient($this->messageRouter->buildStdoutMessage($data));
             // debug 模式下打印通信记录
             if ($this->config->debug) {
-                echo "[→ Client] stdout: " . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
+                echo '[→ Client] stdout: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
             }
         });
 
@@ -83,7 +83,7 @@ final class ConnectionHandler
         $process->onStderr(function (string $data): void {
             $this->sendToClient($this->messageRouter->buildStderrMessage($data));
             if ($this->config->debug) {
-                echo "[→ Client] stderr: " . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
+                echo '[→ Client] stderr: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
             }
         });
 
@@ -152,7 +152,7 @@ final class ConnectionHandler
         if ($data !== null && $this->process !== null) {
             $this->process->write($data);
             if ($this->config->debug) {
-                echo "[← Client] stdin: " . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
+                echo '[← Client] stdin: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
             }
         }
     }

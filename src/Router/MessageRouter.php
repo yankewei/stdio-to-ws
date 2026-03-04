@@ -67,12 +67,13 @@ final class MessageRouter
             /** @var mixed $data */
             $data = json_decode($message, true, 512, JSON_THROW_ON_ERROR);
 
-            if (!is_array($data) || !isset($data['type']) || !is_string($data['type'])) {
+            if (! is_array($data) || ! isset($data['type']) || ! is_string($data['type'])) {
                 return null;
             }
 
             /** @var array{type: string, data?: string} $result */
             $result = $data;
+
             return $result;
         } catch (\JsonException) {
             return null;
@@ -85,19 +86,20 @@ final class MessageRouter
      */
     public function extractStdinData(array $message): ?string
     {
-        if (!isset($message['type']) || $message['type'] !== 'stdin') {
+        if (! isset($message['type']) || $message['type'] !== 'stdin') {
             return null;
         }
 
         $data = isset($message['data']) && is_string($message['data']) ? $message['data'] : '';
-        
+
         // raw 模式：直接使用原始数据
         if ($this->config->raw) {
             return $data;
         }
-        
+
         // Base64 模式：解码
         $decoded = base64_decode($data, true);
+
         return $decoded !== false ? $decoded : $data;
     }
 
@@ -113,7 +115,7 @@ final class MessageRouter
                 'data' => $data,
             ], JSON_THROW_ON_ERROR);
         }
-        
+
         // 默认：Base64 编码
         return json_encode([
             'type' => $type,
