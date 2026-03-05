@@ -101,7 +101,9 @@ final class WebSocketServer implements WebsocketClientHandler
         try {
             $handler->handle();
         } catch (\Throwable $e) {
-            echo 'Connection error: ' . $e->getMessage() . "\n";
+            if ($this->config->debug) {
+                fwrite(STDERR, 'Connection error: ' . $e->getMessage() . "\n");
+            }
         }
     }
 

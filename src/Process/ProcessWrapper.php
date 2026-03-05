@@ -95,9 +95,20 @@ final class ProcessWrapper
      */
     public function write(string $data): void
     {
-        if ($this->stdin !== null && ! $this->stdin->isClosed()) {
-            $this->stdin->write($data);
+        if ($this->stdin === null || $this->stdin->isClosed()) {
+            return;
         }
+
+        // 使用 EventLoop::queue 异步写入，避免阻塞
+        EventLoop::queue(function () use ($data): void {
+            if ($this->stdin !== null && ! $this->stdin->isClosed()) {
+                try {
+                    $this->stdin->write($data);
+                } catch (\Throwable) {
+                    // 写入失败（进程可能已退出），忽略
+                }
+            }
+        });
     }
 
     /**

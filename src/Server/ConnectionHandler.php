@@ -19,6 +19,7 @@ final class ConnectionHandler
 {
     private string $connectionId;
     private ?ProcessWrapper $process = null;
+    private bool $isClosing = false;
 
     public function __construct(
         private readonly WebsocketClient $client,
@@ -51,6 +52,10 @@ final class ConnectionHandler
 
             // 4. 处理 WebSocket 消息
             $this->handleWebSocketMessages();
+        } catch (\Throwable $e) {
+            if ($this->config->debug) {
+                fwrite(STDERR, "[conn:{$this->connectionId}] error: {$e->getMessage()}\n");
+            }
         } finally {
             $this->cleanup();
         }
@@ -69,9 +74,12 @@ final class ConnectionHandler
 
         // stdout -> WebSocket 客户端（透传）
         $process->onStdout(function (string $data): void {
-            $this->sendToClient($data);
+            // 使用 EventLoop::queue 避免阻塞进程读取协程
+            EventLoop::queue(function () use ($data): void {
+                $this->sendToClient($data);
+            });
             if ($this->config->debug) {
-                echo '[→ Client] stdout: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n";
+                fwrite(STDOUT, '[→ Client] stdout: ' . str_replace(["\n", "\r"], ['\n', '\r'], $data) . "\n");
             }
         });
 
@@ -88,9 +96,12 @@ final class ConnectionHandler
         // 进程退出时关闭 WebSocket 连接
         $process->onExit(function (int $code): void {
             if ($this->config->debug) {
-                echo "[conn:{$this->connectionId}] process_exit: code=$code\n";
+                fwrite(STDOUT, "[conn:{$this->connectionId}] process_exit: code=$code\n");
             }
-            $this->client->close();
+            EventLoop::queue(function (): void {
+                $this->isClosing = true;
+                $this->client->close();
+            });
         });
     }
 
@@ -106,6 +117,11 @@ final class ConnectionHandler
                 if ($message === null) {
                     // 连接已关闭
                     break;
+                }
+
+                // 忽略二进制消息，只处理文本
+                if ($message->isBinary()) {
+                    continue;
                 }
 
                 $text = $message->buffer();
@@ -125,14 +141,14 @@ final class ConnectionHandler
     private function handleClientMessage(string $text): void
     {
         // 直接透传到子进程 stdin（确保以换行符结尾）
-        if ($this->process !== null) {
+        if ($this->process !== null && ! $this->isClosing) {
             $data = $text;
             if (! str_ends_with($data, "\n")) {
                 $data .= "\n";
             }
             $this->process->write($data);
             if ($this->config->debug) {
-                echo '[← Client] stdin: ' . str_replace(["\n", "\r"], ['\n', '\r'], $text) . "\n";
+                fwrite(STDOUT, '[← Client] stdin: ' . str_replace(["\n", "\r"], ['\n', '\r'], $text) . "\n");
             }
         }
     }
@@ -142,13 +158,13 @@ final class ConnectionHandler
      */
     private function sendErrorToClient(string $errorMessage): void
     {
-        try {
-            $payload = json_encode(['type' => 'error', 'message' => $errorMessage]);
-            if ($payload !== false) {
-                $this->sendToClient($payload);
-            }
-        } catch (\Throwable) {
-            // 忽略发送错误
+        if ($this->isClosing || $this->client->isClosed()) {
+            return;
+        }
+
+        $payload = json_encode(['type' => 'error', 'message' => $errorMessage]);
+        if ($payload !== false) {
+            $this->sendToClient($payload);
         }
     }
 
@@ -157,14 +173,25 @@ final class ConnectionHandler
      */
     private function sendToClient(string $message): void
     {
-        try {
-            if ($this->client->isClosed()) {
-                return;
-            }
-            $this->client->sendText($message);
-        } catch (WebsocketClosedException) {
-            // 连接已关闭，忽略
+        if ($this->isClosing || $this->client->isClosed()) {
+            return;
         }
+
+        // 使用 EventLoop::queue 异步发送，避免阻塞
+        EventLoop::queue(function () use ($message): void {
+            try {
+                if ($this->isClosing || $this->client->isClosed()) {
+                    return;
+                }
+                $this->client->sendText($message);
+            } catch (WebsocketClosedException) {
+                // 连接已关闭，忽略
+            } catch (\Throwable $e) {
+                if ($this->config->debug) {
+                    fwrite(STDERR, "[conn:{$this->connectionId}] send error: {$e->getMessage()}\n");
+                }
+            }
+        });
     }
 
     /**
@@ -172,19 +199,25 @@ final class ConnectionHandler
      */
     private function cleanup(): void
     {
-        if ($this->process !== null) {
-            $this->process->closeStdin();
-            if ($this->process->isRunning()) {
-                // 给进程一点优雅退出的时间
-                EventLoop::delay(1, function (): void {
-                    if ($this->process !== null && $this->process->isRunning()) {
-                        $this->process->kill();
-                    }
-                    $this->processManager->removeProcess($this->connectionId);
-                });
-            } else {
+        $this->isClosing = true;
+
+        if ($this->process === null) {
+            return;
+        }
+
+        // 关闭进程 stdin，让进程知道客户端已断开
+        $this->process->closeStdin();
+
+        if ($this->process->isRunning()) {
+            // 给进程一点优雅退出的时间
+            EventLoop::delay(1, function (): void {
+                if ($this->process !== null && $this->process->isRunning()) {
+                    $this->process->kill();
+                }
                 $this->processManager->removeProcess($this->connectionId);
-            }
+            });
+        } else {
+            $this->processManager->removeProcess($this->connectionId);
         }
     }
 }
